@@ -35,31 +35,33 @@ namespace KeyboardSniffer
         [DllImport("user32.dll")]
         private static extern int ToUnicodeEx(uint wVirtKey, uint wScanCode, byte[] lpKeyState, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags, IntPtr dwhkl);
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr LoadKeyboardLayout(string pwszKLID, uint Flags);
+        // For loading specific keyboard layout
+        //[DllImport("user32.dll")]
+        //private static extern IntPtr LoadKeyboardLayout(string pwszKLID, uint Flags);
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x100;
-        private const int WM_KEYUP = 0x101;
+        //private const int WM_KEYUP = 0x101;
         private const int WM_SYSKEYDOWN = 0x104;
-        private const int WM_SYSKEYUP = 0x105;
+        //private const int WM_SYSKEYUP = 0x105;
 
         private const uint MAPVK_VK_TO_VSC = 0x00;
-        private const uint MAPVK_VSC_TO_VK = 0x01;
-        private const uint MAPVK_VK_TO_CHAR = 0x02;
-        private const uint MAPVK_VSC_TO_VK_EX = 0x03;
-        private const uint MAPVK_VK_TO_VSC_EX = 0x04;
+        //private const uint MAPVK_VSC_TO_VK = 0x01;
+        //private const uint MAPVK_VK_TO_CHAR = 0x02;
+        //private const uint MAPVK_VSC_TO_VK_EX = 0x03;
+        //private const uint MAPVK_VK_TO_VSC_EX = 0x04;
 
-        private bool _enabled = true;
         private IntPtr _hookID = IntPtr.Zero;
-        private readonly StringBuilder _buffer = new StringBuilder();
         // field to store the callback to avoid the delegate being collected by GC
         private readonly LowLevelKeyboardProc _proc;
 
         public event KeyboardHookEventHandler KeyboardEvent;
 
+        /// <summary>
+        /// Keyboard hook is active
+        /// </summary>
         public bool IsOpen
         {
             get { return _hookID != IntPtr.Zero; }
@@ -70,6 +72,9 @@ namespace KeyboardSniffer
             _proc = HookCallback;
         }
 
+        /// <summary>
+        /// Release keyboard hook
+        /// </summary>
         public void Close()
         {
             if (IsOpen)
@@ -79,6 +84,9 @@ namespace KeyboardSniffer
             }
         }
 
+        /// <summary>
+        /// Activate keyboard hook
+        /// </summary>
         public void Open()
         {
             if (!IsOpen)
@@ -97,7 +105,7 @@ namespace KeyboardSniffer
                 }
             }
         }
-
+       
         private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
@@ -119,6 +127,12 @@ namespace KeyboardSniffer
             }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
+
+        /// <summary>
+        /// Converts key code to unicode string
+        /// </summary>
+        /// <param name="key">Key code</param>
+        /// <returns>string with length 1 for letters/numbers/etc. or empty string for controls</returns>
         private static string KeyCodeToUnicode(int key)
         {
             byte[] keyboardState = new byte[255];
@@ -145,7 +159,10 @@ namespace KeyboardSniffer
         }
 
         #region IDisposable Support
-
+        /// <summary>
+        /// Dispose keyboard hook - release hook
+        /// </summary>
+        /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
